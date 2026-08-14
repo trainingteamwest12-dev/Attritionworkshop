@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>West Zone Manager Workshop — Case Study Simulator</title>
+<style>
+  :root{
+    --navy:#2C225F;
+    --blue:#086CB7;
+    --blue-light:#E9F2FB;
+    --red:#E21D26;
+    --red-light:#FDEBEC;
+    --green:#0F8040;
+    --green-light:#EAF6EE;
+    --pink:#EB73A3;
+    --ink:#1C1C28;
+    --mute:#6B7280;
+    --line:#E3E7EE;
+    --bg:#F7F8FA;
+    --card:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,Segoe UI,Calibri,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:28px 20px 80px;}
+  header.top{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:22px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .chip{width:14px;height:14px;border-radius:4px;}
+  .brand-name{font-weight:700;font-size:14px;letter-spacing:.5px;color:var(--navy);}
+  .score-pill{
+    background:var(--navy);color:#fff;font-weight:700;font-size:13px;
+    padding:7px 14px;border-radius:999px;
+  }
+  h1{font-family:Georgia,'Times New Roman',serif;font-size:26px;margin:0 0 8px;color:var(--ink);}
+  h2{font-family:Georgia,'Times New Roman',serif;font-size:21px;margin:0 0 10px;color:var(--ink);}
+  p.lede{color:var(--mute);font-size:14.5px;line-height:1.55;margin:0 0 18px;}
+
+  .progress-track{
+    display:flex;gap:6px;margin-bottom:26px;
+  }
+  .progress-seg{flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden;}
+  .progress-seg.done{background:var(--blue);}
+  .progress-seg.current{background:linear-gradient(90deg,var(--blue) 50%,var(--line) 50%);}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:26px 26px 22px;margin-bottom:16px;
+  }
+
+  .swatch-tag{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--blue-light);color:var(--blue);font-weight:700;font-size:11.5px;
+    letter-spacing:.6px;padding:6px 12px;border-radius:999px;margin-bottom:14px;
+  }
+  .swatch-tag .dot{width:8px;height:8px;border-radius:50%;background:var(--blue);}
+
+  .scenario-box{
+    background:var(--bg);border-left:4px solid var(--navy);
+    padding:16px 18px;border-radius:8px;font-size:14.5px;line-height:1.65;color:var(--ink);
+    margin-bottom:20px;
+  }
+  .question{font-weight:700;font-size:15px;margin:0 0 14px;color:var(--ink);}
+
+  .option{
+    display:flex;gap:12px;align-items:flex-start;
+    border:1.5px solid var(--line);border-radius:10px;
+    padding:14px 16px;margin-bottom:10px;cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  .option:hover{border-color:var(--blue);}
+  .option input{margin-top:3px;accent-color:var(--blue);width:16px;height:16px;flex-shrink:0;}
+  .option label{font-size:14px;line-height:1.5;cursor:pointer;}
+  .option.picked{border-color:var(--blue);background:var(--blue-light);}
+  .option.locked{cursor:default;}
+  .option.locked:hover{border-color:var(--line);}
+  .option.correct-best{border-color:var(--green);background:var(--green-light);}
+  .option.correct-best.picked{border-color:var(--green);background:var(--green-light);}
+
+  .btn{
+    display:inline-block;background:var(--blue);color:#fff;border:none;
+    font-size:14px;font-weight:700;padding:13px 26px;border-radius:9px;cursor:pointer;
+    margin-top:6px;
+  }
+  .btn:disabled{background:#B9C3CE;cursor:not-allowed;}
+  .btn.secondary{background:transparent;color:var(--blue);border:1.5px solid var(--blue);}
+  .btn-row{display:flex;justify-content:flex-end;gap:10px;margin-top:8px;}
+
+  .feedback{
+    margin-top:18px;padding:16px 18px;border-radius:10px;font-size:13.5px;line-height:1.6;
+  }
+  .feedback.score-10{background:var(--green-light);border:1px solid var(--green);}
+  .feedback.score-6{background:#FFF6E5;border:1px solid #C98A00;}
+  .feedback.score-3{background:#FFF1E5;border:1px solid #C9600A;}
+  .feedback.score-0{background:var(--red-light);border:1px solid var(--red);}
+  .feedback-head{font-weight:700;margin-bottom:6px;display:flex;justify-content:space-between;}
+
+  .classify-box{
+    margin-top:16px;padding:14px 16px;background:var(--bg);border-radius:8px;font-size:13px;color:var(--mute);
+  }
+  .classify-box b{color:var(--ink);}
+  .tag-manageable{color:var(--green);font-weight:700;}
+  .tag-nonworkable{color:var(--red);font-weight:700;}
+
+  .recheck-banner{
+    background:#FFF6E5;border:1.5px solid #C98A00;border-radius:10px;
+    padding:16px 18px;margin-bottom:16px;font-size:13.5px;line-height:1.6;
+  }
+  .recheck-banner .rc-head{font-weight:700;color:#8A5F00;margin-bottom:4px;font-size:13px;}
+  .option.rc-selected{border-color:#C98A00;background:#FFF6E5;}
+  .option.rc-original{opacity:.55;cursor:default;}
+  .option.rc-original:hover{border-color:var(--line);}
+
+  /* Landing */
+  .landing-card{text-align:left;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:13px;font-weight:700;margin-bottom:6px;color:var(--ink);}
+  .field input,.field select{
+    width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:8px;font-size:14px;
+    font-family:inherit;
+  }
+  .field input:focus,.field select:focus{outline:none;border-color:var(--blue);}
+
+  .stat-row{display:flex;gap:12px;margin:20px 0;}
+  .stat{flex:1;background:var(--bg);border-radius:10px;padding:14px;text-align:center;}
+  .stat b{display:block;font-size:22px;color:var(--blue);font-family:Georgia,serif;}
+  .stat span{font-size:11px;color:var(--mute);}
+
+  /* Results */
+  .band-banner{
+    text-align:center;padding:30px 20px;border-radius:14px;margin-bottom:20px;color:#fff;
+  }
+  .band-banner .big{font-family:Georgia,serif;font-size:46px;font-weight:700;margin:6px 0;}
+  .band-banner .label{font-size:16px;font-weight:700;letter-spacing:.4px;}
+  .band-banner .sub{font-size:13px;opacity:.9;margin-top:6px;}
+
+  .summary-row{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 4px;border-bottom:1px solid var(--line);font-size:13.5px;
+  }
+  .summary-row:last-child{border-bottom:none;}
+  .summary-row .pts{font-weight:700;}
+  .pts.p10{color:var(--green);}
+  .pts.p6{color:#C98A00;}
+  .pts.p3{color:#C9600A;}
+  .pts.p0{color:var(--red);}
+
+  .submit-status{
+    margin-top:14px;font-size:12.5px;color:var(--mute);text-align:center;
+  }
+
+  footer.foot{
+    text-align:center;color:var(--mute);font-size:11.5px;margin-top:30px;
+  }
+
+  /* Leaderboard mode */
+  .lb-wrap{max-width:900px;margin:0 auto;padding:36px 24px;}
+  .lb-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px;}
+  table.lb{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;border:1px solid var(--line);}
+  table.lb th{background:var(--navy);color:#fff;text-align:left;padding:12px 16px;font-size:12.5px;letter-spacing:.4px;}
+  table.lb td{padding:12px 16px;font-size:14px;border-bottom:1px solid var(--line);}
+  table.lb tr:last-child td{border-bottom:none;}
+  .rank{font-weight:700;color:var(--blue);width:40px;}
+  .rank.gold{color:#C98A00;}
+  .lb-refresh{font-size:12px;color:var(--mute);}
+  .lb-empty{padding:40px;text-align:center;color:var(--mute);}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+/* ============================================================
+   CONFIG — plug in your Google Apps Script + published CSV URLs
+   (Same pattern as the Dealer Conversion Pitch Builder.)
+   Leave blank to run the tool in local-only mode (no leaderboard).
+   ============================================================ */
+const CONFIG = {
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxo1jJtE5T4lAFMooVGnidZvKft767tKUfoGRabNfCU5Yt1nYpglNF30WrHyI3dxc_4/exec", // e.g. "https://script.google.com/macros/s/XXXX/exec"
+  LEADERBOARD_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTKVEGMdRfyJn8_5PHC_2ZokxkTXlcrHp61hL-YDkD9mkGVfz2C5P8khrA7ti2NlHNEQ4Bfd0CNEelK/pub?gid=0&single=true&output=csv" // Sheet > File > Share > Publish to web > CSV link
+};
+
+/* ============================================================
+   CASE STUDY DATA — composite, anonymized scenarios
+   ============================================================ */
+const CASES = [
+  {
+    id: 1,
+    title: "The Relentless Calendar",
+    theme: "Workload & Offs",
+    scenario: "Arjun, a strong 2nd-year Field Sales Officer in a tier-2 town, has missed his weekly off for six straight weeks. Every week there's a reason — a dealer event, a month-end push, an \u201Curgent\u201D visit from his ASM. He hasn't complained. His ASM only learns Arjun has been quietly interviewing elsewhere when the resignation email lands.",
+    question: "What should the ASM have done as soon as this pattern appeared, around week 2 or 3?",
+    options: [
+      { text: "Trust Arjun to speak up if it's genuinely too much — he's experienced enough to manage his own workload and hasn't complained so far.", points: 0, rationale: "This is exactly the mindset that produces silent burnout. Targets don't require sacrificing every off, and silence isn't the same as being fine." },
+      { text: "Mark it as a one-off busy stretch and revisit only if the pattern is still there next month.", points: 3, rationale: "Passive. Most people don't complain until they've already decided to leave — waiting a full month means finding out too late." },
+      { text: "Thank Arjun for the extra push and process a one-time off-in-lieu credit for the weeks he missed.", points: 6, rationale: "Well-meaning, but it treats the symptom. The calendar will keep eating his offs next month too unless the planning changes." },
+      { text: "Sit with Arjun this week, map out next month's recurring 'urgent' visits in advance, and build in protected alternate-week offs.", points: 10, rationale: "This fixes the root cause — how the territory and week are planned — not just the symptom." }
+    ],
+    classification: "manageable",
+    classifyNote: "This sits entirely inside the manager's beat-planning and prioritization decisions — fully manageable."
+  },
+  {
+    id: 2,
+    title: "The Manager Who Never Shows Up",
+    theme: "Presence & Support",
+    scenario: "Priya is a new ASM handling five FSOs across a large territory. One FSO, working a genuinely tough market, has asked for a joint dealer visit three times over two months for support. Priya keeps saying \u201Cnext week\u201D but never comes — while she joint-visits her two best-performing FSOs almost every fortnight.",
+    question: "As Priya's regional manager, what's the best first move to coach this pattern?",
+    options: [
+      { text: "Set up a rotating joint-visit calendar covering every FSO monthly, and review it with Priya every week.", points: 10, rationale: "A structural fix — the habit becomes visible and accountable, not dependent on Priya remembering to do it on her own." },
+      { text: "Name the favoritism pattern directly to Priya, set a clear expectation of equal visit time for every FSO, and check back in a month.", points: 10, rationale: "Naming it directly, with a real follow-up date, is just as valid a first move as building the calendar — sometimes the honest conversation has to come first." },
+      { text: "Reassign the struggling FSO to a different ASM so he gets the support he needs right away.", points: 3, rationale: "A band-aid — it rescues one person but leaves Priya's pattern completely untouched for whoever fills that seat next." },
+      { text: "Ask Priya to self-report her visit split each month, trusting that seeing it in writing will correct the pattern on its own.", points: 6, rationale: "A reasonable nudge, but self-reporting without any external check tends to drift right back to the same comfortable pattern." }
+    ],
+    dualBest: [0, 1],
+    classification: "manageable",
+    classifyNote: "Manager presence and how joint visits get allocated is squarely within the ASM's — and her manager's — control."
+  },
+  {
+    id: 3,
+    title: "The Broken Promise",
+    theme: "Trust & Commitments",
+    scenario: "After a strong quarter, an FSO's ASM verbally promised him a salary correction and a retention bonus — four months ago. Nothing has moved. He raised it twice, got vague reassurance both times, and has since stopped asking. He's quietly begun interviewing.",
+    question: "What's the right move once a manager realizes a commitment like this is delayed or stuck in process?",
+    options: [
+      { text: "Say nothing until it's finally approved, trusting that going quiet is safer than repeating a promise you can't yet keep.", points: 0, rationale: "Silence is the actual failure here — it reads as the promise being forgotten or never meant, which is worse than an honest delay." },
+      { text: "Offer the same reassurance again — 'it's in process, don't worry' — to keep his spirits up a little longer.", points: 3, rationale: "Vague reassurance without specifics reads as more of the same non-answer he's already gotten twice — it doesn't buy any real trust." },
+      { text: "Tell him plainly that HR processes take time and ask him to be a bit more patient.", points: 6, rationale: "True, but passive — it puts the burden of patience entirely on him instead of ownership on the manager." },
+      { text: "Proactively update him on the real status, even if it's still pending, and personally escalate the approval this week.", points: 10, rationale: "Ownership and transparency, even with bad news, rebuilds trust faster than silence or vague reassurance ever does." }
+    ],
+    classification: "manageable",
+    classifyNote: "Following through on a commitment — or communicating honestly when it's delayed — is a manager behavior, not an external constraint."
+  },
+  {
+    id: 4,
+    title: "The Line That Shouldn't Be Crossed",
+    theme: "Respect & Escalation",
+    scenario: "A depot head has repeatedly pressured a young FSO to bill unapproved products to hit monthly numbers, and speaks to him disrespectfully in front of dealers whenever he pushes back. A peer manager hears about this informally, more than once, from people on the ground.",
+    question: "What's the right action for that peer manager to take?",
+    options: [
+      { text: "Stay out of it — it's a different team, and it isn't really your place to intervene.", points: 0, rationale: "Silence in the face of a repeated pattern lets it continue, and signals to everyone else that it's being tolerated." },
+      { text: "Advise the FSO privately to keep his head down and just get through month-end without escalating it further.", points: 3, rationale: "This is exactly the advice that keeps unethical pressure and disrespect invisible. It should never be the guidance given." },
+      { text: "Tell the FSO he should confront the depot head directly and stand his ground the next time it happens.", points: 6, rationale: "Well-intentioned, but it puts a junior person at risk without any real protection or backup behind him." },
+      { text: "Encourage the FSO to formally escalate through HR or skip-level, and flag the pattern yourself since you've heard it repeatedly.", points: 10, rationale: "This is not a 'manage it yourself' situation — it needs formal escalation, and a peer manager's corroboration genuinely matters." }
+    ],
+    classification: "manageable",
+    classifyNote: "Manageable — but only through proper escalation and process, never through self-management or silence."
+  },
+  {
+    id: 5,
+    title: "Lost in the First 90 Days",
+    theme: "Onboarding",
+    scenario: "A new FSO joins a large, unfamiliar territory with no structured onboarding plan, no assigned buddy, and no scheduled check-ins. By day 45, he feels directionless — and starts comparing notes with friends who joined competitors with structured induction programs.",
+    question: "What should have been in place for him from day one?",
+    options: [
+      { text: "Let him find his footing the way most people do — too much structure can actually slow down a capable new hire.", points: 0, rationale: "This 'sink or swim' approach is exactly why probation exits are so common — it isn't a rite of passage, it's a real gap." },
+      { text: "Run one solid induction session in week one, and trust him to ask questions after that as they come up.", points: 3, rationale: "A single session doesn't sustain someone through 90 unfamiliar days in a market he doesn't know yet." },
+      { text: "Pair him with a buddy and let that relationship develop naturally, without a fixed check-in schedule around it.", points: 6, rationale: "Better than nothing, but without scheduled check-ins, problems tend to surface only once they've already grown." },
+      { text: "Set a structured 30-60-90 day plan with an assigned buddy and scheduled check-ins at day 7, 30, 60 and 90.", points: 10, rationale: "This is the structural fix — regular, scheduled touchpoints catch drift before it quietly becomes a resignation." }
+    ],
+    classification: "manageable",
+    classifyNote: "Onboarding structure is entirely designed and owned by the manager and the org — fully manageable."
+  },
+  {
+    id: 6,
+    title: "When It's Genuinely Not About You",
+    theme: "Non-workable — the contrast case",
+    scenario: "A strong-performing FSO resigns to relocate to his home city after his father's health declines and his family asks him to return. His manager feels personally responsible, spends weeks trying to negotiate a transfer, offers a hike to make him stay, and privately feels she's failed as a manager.",
+    question: "What's the appropriate response for the manager here?",
+    options: [
+      { text: "Treat this as a personal management failure, and keep trying to fix it well past the point that's reasonable.", points: 0, rationale: "This mindset misdirects real energy and emotional weight onto something that was never actually about her management." },
+      { text: "Accept the resignation immediately without exploring anything further, since family reasons are outside a manager's control anyway.", points: 0, rationale: "Dismissive, and a missed chance to check whether a genuine, feasible transfer option might actually exist here." },
+      { text: "Push hard for a transfer or a counter-offer, even after he's indicated his decision is already final.", points: 3, rationale: "Well-meaning but risky — it can pressure someone into staying against a decision they've already made for good reason." },
+      { text: "Genuinely check if an internal transfer to his home city is feasible, support the transition without guilt, and record it correctly as non-workable.", points: 10, rationale: "This is the right instinct: explore what's genuinely possible, then let go — and make sure this isn't miscounted as a 'manageable' miss." }
+    ],
+    classification: "non-workable",
+    classifyNote: "Non-workable. The root cause sits entirely outside the company. The manager's job here is a graceful, respectful transition — not self-blame."
+  },
+  {
+    id: 7,
+    title: "Closing the Week on a High",
+    theme: "Sharpen Your Judgment — Planning vs. Pressure",
+    scenario: "It's Thursday of the last week of the month. The territory is \u20B98L short of budget. Karan, an ASM, has one new FSO — 6 weeks in — who's been doing well but has been protecting his Sunday offs and hasn't yet built the dealer relationships to push big billing fast. Karan's RSM has already called twice today asking for a 'strong Friday close.' Karan knows pushing the new FSO hard this weekend could recover some of that \u20B98L. He also knows the ask he'd be making \u2014 cancel his off, chase billing he isn't yet equipped for \u2014 is exactly what burns out a new joiner in month two.",
+    question: "What should Karan do right now, Thursday afternoon?",
+    options: [
+      { text: "Push the new FSO hard for the weekend — a strong close matters more than one uncomfortable ask this early on.", points: 0, rationale: "Feels decisive, but trades one month's number for a career-long trust problem with a hire who's only six weeks in." },
+      { text: "Protect the new FSO's off completely, and quietly absorb the shortfall without flagging it upward this week.", points: 3, rationale: "Protects the person but abandons the business problem and Karan's own credibility with his RSM — not sustainable either." },
+      { text: "Redistribute the ask across the rest of the mature team this week, and give the RSM an honest, specific read on why the new FSO stays out of it.", points: 6, rationale: "A reasonable short-term patch — solves Friday without burning the new joiner, but doesn't touch why this crunch happened in the first place." },
+      { text: "Do the redistribution above, and separately flag that this is the second late scramble this quarter — propose a mid-month pacing checkpoint so shortfalls surface two weeks earlier next time.", points: 10, rationale: "Solves Friday and fixes the actual defect: the team found out too late to respond well. This is what pre-planning could have prevented." }
+    ],
+    classification: "manageable",
+    classifyNote: "This wasn't really a Thursday problem — it started with how the month was paced. Manageable, but only if the fix moves upstream of the crisis moment.",
+    debrief: "This wasn't really a Thursday problem. Where did it actually start?"
+  },
+  {
+    id: 8,
+    title: "The Orientation Gap",
+    theme: "Sharpen Your Judgment — Expectations vs. Reality",
+    scenario: "Meher joined as an FSO three weeks ago. In her interviews, the JD talked about 'market development and key account strategy.' In practice, 80% of her week is retail beat coverage — dealer visits, POS execution, collections follow-up. No one lied to her, exactly, but nobody corrected the picture in her head either. She's visibly deflated, has started asking her buddy pointed questions about 'if this is really what the role is,' and her manager, Sanjay, only finds out how big the gap is when she mentions it almost in passing.",
+    question: "What should Sanjay do?",
+    options: [
+      { text: "Tell her this is standard for the role and that everyone starts out this way — nothing really to fix here.", points: 0, rationale: "Dismisses a legitimate expectation mismatch instead of naming it and dealing with it honestly." },
+      { text: "Reassure her that things get more strategic later on, and encourage her to give it a bit more time.", points: 3, rationale: "Kicks the problem down the road without actually resetting her expectations to today's reality." },
+      { text: "Have an honest conversation resetting what the role actually looks like day to day, so she can decide with accurate information.", points: 6, rationale: "Necessary and honest — but it only fixes it for Meher. The same gap will greet the next hire in three months." },
+      { text: "Have that same honest conversation now, and separately flag the JD/interview-messaging gap to HR/TA so the next hire doesn't inherit it too.", points: 10, rationale: "Fixes the immediate relationship and the upstream defect. Manageable here mostly means escalating a process gap, not personally absorbing it." }
+    ],
+    classification: "manageable",
+    classifyNote: "Manageable at the relationship level, but the real fix sits upstream at HR/TA — orientation should set accurate expectations before day one.",
+    debrief: "What's the difference between a manager who fixes this for Meher, and one who fixes it so it doesn't happen to the next Meher?"
+  },
+  {
+    id: 9,
+    title: "The Numbers Look Fine, the People Don't",
+    theme: "Sharpen Your Judgment — Reading Beneath the Results",
+    scenario: "An ASM's territory has hit 104% of budget for two straight months. On paper, nothing to worry about. But across review calls: one FSO hasn't taken a weekly off in six weeks, covering for a colleague's leave. Another, usually vocal, has gone quiet in team calls. The team's average start time has crept from 9am to 11am — later starts, later finishes, more hours overall. No one has said a word.",
+    question: "What should the ASM do, given the numbers look great?",
+    options: [
+      { text: "Proactively review workload and hours across the whole team this month, treating results and wellbeing as two separate things worth tracking.", points: 10, rationale: "This is the core skill this case tests: strong numbers can hide a team quietly running on fumes, and both signals need tracking, not just one." },
+      { text: "Go straight to the FSO covering his colleague's leave and have a direct, specific conversation about redistributing that load now.", points: 10, rationale: "Tackling the clearest, most concrete overload immediately is just as valid a first move as the wider team review — both catch the problem before it grows." },
+      { text: "Have an informal 1:1 with just the quiet FSO, since he's the most visibly changed of the group.", points: 6, rationale: "A good instinct, but partial — it misses both the covering FSO's overload and the wider pattern of hours creeping up." },
+      { text: "Wait for the quarterly engagement survey to confirm whether this is a real pattern before acting on it.", points: 3, rationale: "Passive — by the time a formal survey catches this, the pattern will already be months old." }
+    ],
+    dualBest: [0, 1],
+    classification: "manageable",
+    classifyNote: "Fully manageable — the signals were all visible. The test here is noticing, not deciding.",
+    debrief: "If this team's numbers had been below budget instead of above, would you have caught this sooner? What does that say about what we actually monitor?"
+  },
+  {
+    id: 10,
+    title: "Two Good People, One Bandwidth",
+    theme: "Sharpen Your Judgment — Prioritizing Under Constraint",
+    scenario: "Same week: a 3-week-old FSO is lost on systems and messaging his RSM nightly for help. A 5-year top performer has gone quieter in reviews — hasn't asked for anything, but something feels off. The RSM has bandwidth for exactly one real, meaningful conversation this week beyond routine work.",
+    question: "What should the RSM do?",
+    options: [
+      { text: "Split your available time evenly across both — give each person a shorter version of the conversation they need.", points: 0, rationale: "Feels fair, but thin attention split across both often means neither person actually gets what they need this week." },
+      { text: "Focus entirely on the new FSO this week, since he's the one actively asking for help every night.", points: 3, rationale: "Responds to volume, not necessarily to what matters most — a quiet top performer can be a bigger flight risk than a vocal new joiner." },
+      { text: "Focus entirely on the top performer this week, trusting the buddy system to carry the new FSO in the meantime.", points: 6, rationale: "A defensible call if the buddy system is genuinely active — risky if that's simply assumed rather than actually confirmed." },
+      { text: "Quickly confirm the new FSO's buddy support is genuinely active, then spend your real time on the top performer, with a specific check-in date locked in for the new FSO.", points: 10, rationale: "This doesn't pretend the constraint doesn't exist — it verifies the safety net before relying on it, so the harder conversation gets real attention." }
+    ],
+    classification: "manageable",
+    classifyNote: "Manageable — but there's no clean split here. The skill is prioritizing without pretending both problems can get full attention.",
+    debrief: "There was no perfect answer here. What made one imperfect answer better than another?"
+  },
+  {
+    id: 11,
+    title: "The Silent Resignation",
+    theme: "Sharpen Your Judgment — Reading Patterns, Not Words",
+    scenario: "A five-week behavior log, no conversation in it at all: Week 1 — report submitted on time. Week 2 — report a day late, no explanation given. Week 3 — misses a joint visit, reschedules twice. Week 4 — a teammate mentions he's marked 'open to work' on LinkedIn. Week 5 — requests a weekday leave, unusual for him.",
+    question: "Reading only this pattern, what should the manager have done by week 3?",
+    options: [
+      { text: "Treat weeks 1 and 2 as normal — a slightly late report isn't unusual and doesn't call for a response.", points: 0, rationale: "By week 3 there are already two consecutive process misses in a row — that's a pattern, not a one-off." },
+      { text: "Send a message about being more consistent with report deadlines, focused on the process issue itself.", points: 3, rationale: "Treats the symptom — a late report — as the problem, rather than reading it as a signal of something else going on." },
+      { text: "Hold off until the week 5 leave request, since that's the clearest and most concrete signal so far.", points: 6, rationale: "By week 5 the pattern is loud and obvious — the skill being tested is catching it two weeks earlier, while it's still quiet." },
+      { text: "By week 3 — two consecutive process misses in a row — proactively start a real check-in conversation, not a task follow-up.", points: 10, rationale: "This is the earliest point the pattern is already a pattern. Waiting past this loses the window to actually change the outcome." }
+    ],
+    classification: "manageable",
+    classifyNote: "Fully manageable — every data point here was visible in real time. This case tests whether a manager reads patterns before someone announces the decision out loud.",
+    debrief: "No one said a word to this manager in five weeks. What did the manager have to actually go looking for?"
+  },
+  {
+    id: 12,
+    title: "When the System Says No",
+    theme: "Sharpen Your Judgment — Integrity Under Constraint",
+    scenario: "An FSO has a real pay anomaly — a grade-mate elsewhere earns roughly 12% more for comparable work, from a correction that never got applied to him. His manager has escalated twice in three months; both times deferred to 'budget cycle,' with no clear timeline. He's started asking directly: 'so what's actually happening with this?'",
+    question: "What's the right way to handle it now?",
+    options: [
+      { text: "Be transparent about exactly what's stuck and why, commit to a specific follow-up date, and explore any interim lever available while it's pending.", points: 10, rationale: "The realistic version of integrity: not overpromising what the system won't deliver, but not disappearing behind it either." },
+      { text: "Take this above your usual channel — go directly to the HRBP or skip-level and ask for an explicit timeline commitment, since two normal escalations haven't moved it.", points: 10, rationale: "Just as valid — when the normal channel has already failed twice, going above it for a real timeline is a legitimate next move, not overstepping." },
+      { text: "Apologize sincerely and tell him honestly that there's nothing more that can be done from your side.", points: 6, rationale: "Honest, but passive — it stops one step short of genuinely exhausting the options actually available to you." },
+      { text: "Promise him it will definitely be resolved next cycle, to give him something concrete to hold onto for now.", points: 3, rationale: "A comforting promise you can't actually guarantee. If it slips again, you've now broken a promise on top of a delay." }
+    ],
+    dualBest: [0, 1],
+    classification: "manageable",
+    classifyNote: "Manageable in how it's communicated and pursued — but the manager genuinely cannot force the underlying system to move faster. The skill is honesty without helplessness.",
+    debrief: "What's the difference between 'I can't fix this' and 'I can't fix this alone'?"
+  },
+  {
+    id: 13,
+    title: "The Missing Foundation",
+    theme: "Sharpen Your Judgment — Owning the Full Ramp-Up",
+    scenario: "A lateral hire, four years' experience elsewhere, one month in. Confident with dealers, but keeps making basic errors — logging visits wrong in the app, misquoting scheme mechanics, unsure how his own incentive is even calculated. He hasn't asked for help — as an experienced hire, he feels he's expected to already know this. His manager assumed a lateral needs less hand-holding than a fresher, and never scheduled anything beyond a day-one login walkthrough.",
+    question: "What should the manager do?",
+    options: [
+      { text: "Trust that his four years of experience elsewhere will carry over, and let him find his footing without extra input.", points: 0, rationale: "Experience elsewhere doesn't transfer app fluency or company-specific scheme and incentive mechanics — this assumption is the actual root cause here." },
+      { text: "Send him the standard process documents and let him work through app and scheme mechanics on his own time.", points: 3, rationale: "Puts the burden entirely on him to decode systems and mechanics that a short structured session would cover far faster." },
+      { text: "Set up one personal catch-up session to walk him through the app and scheme basics directly.", points: 6, rationale: "A good start, but one session doesn't build lasting fluency on something as ongoing as incentive and scheme mechanics." },
+      { text: "Arrange SME-led sessions on app usage and scheme understanding, and start a recurring weekly learning hour for new and lateral joiners covering MWA, MEA, incentive earning, and Action Score.", points: 10, rationale: "Treats training as infrastructure, not a one-time event. A standing weekly hour on the parameters that drive pay and performance should be default for every new or lateral joiner." }
+    ],
+    classification: "manageable",
+    classifyNote: "\u201CExperienced hire\u201D isn't the same as \u201Ctrained hire.\u201D A standing weekly learning hour on MWA, MEA, Incentive earning, and Action Score should be default practice for every new or lateral joiner — not something a manager only builds after watching someone struggle.",
+    debrief: "How many of your current joiners — lateral or fresh — have a standing weekly learning hour today?"
+  }
+];
+
+const MAX_SCORE = CASES.length * 10;
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let state = {
+  screen: "landing", // landing | case | results
+  caseIndex: 0,
+  name: "",
+  location: "",
+  answers: [], // { caseId, points, choiceIndex, sawSecondBest }
+  submittedToSheet: false,
+  recheck: null // { firstPick, secondPick } while a dual-best recheck is in progress
+};
+
+const params = new URLSearchParams(window.location.search);
+const isLeaderboard = params.get("leaderboard") === "1";
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render(){
+  const app = document.getElementById("app");
+  if (isLeaderboard){ app.innerHTML = renderLeaderboard(); initLeaderboard(); return; }
+
+  if (state.screen === "landing") app.innerHTML = renderLanding();
+  else if (state.screen === "case") app.innerHTML = renderCase();
+  else if (state.screen === "results") app.innerHTML = renderResults();
+
+  attachHandlers();
+}
+
+function chipsRow(){
+  return '<div class="brand"><span class="chip" style="background:#086CB7"></span><span class="chip" style="background:#E21D26"></span><span class="chip" style="background:#0F8040"></span><span class="brand-name">WEST ZONE WORKSHOP</span></div>';
+}
+
+function renderLanding(){
+  return `
+  <div class="wrap">
+    <header class="top">${chipsRow()}</header>
+    <div class="card landing-card">
+      <div class="swatch-tag"><span class="dot"></span>CASE STUDY SIMULATOR</div>
+      <h1>Thirteen real-world calls. Your read, your call.</h1>
+      <p class="lede">Composite scenarios built from real West Zone exit patterns — the first six are foundations, the rest get genuinely tricky: two real goods in tension, quiet signals with no dialogue, and constraints you can't just push past. Work through them solo and get your rationale instantly. Your score rolls into the group leaderboard.</p>
+      <div class="stat-row">
+        <div class="stat"><b>${CASES.length}</b><span>CASE STUDIES</span></div>
+        <div class="stat"><b>${MAX_SCORE}</b><span>MAX SCORE</span></div>
+        <div class="stat"><b>~45</b><span>MIN TO FINISH</span></div>
+      </div>
+      <div class="field">
+        <label>Your name</label>
+        <input type="text" id="nameInput" placeholder="e.g. Rohan Deshpande" />
+      </div>
+      <div class="field">
+        <label>Location / Depot</label>
+        <input type="text" id="locInput" placeholder="e.g. Vadodara" />
+      </div>
+      <button class="btn" id="startBtn">Start the exercise</button>
+    </div>
+    <footer class="foot">Sales Training &amp; Capability Development — West Zone</footer>
+  </div>`;
+}
+
+function renderCase(){
+  const c = CASES[state.caseIndex];
+  const answered = state.answers.find(a => a.caseId === c.id);
+  const segs = CASES.map((_, i) => {
+    let cls = "progress-seg";
+    if (i < state.caseIndex) cls += " done";
+    else if (i === state.caseIndex) cls += " " + (answered ? "done" : "current");
+    return `<div class="${cls}"></div>`;
+  }).join("");
+
+  // ---- RECHECK MODE: shown after picking one of two valid best answers ----
+  if (!answered && state.recheck && state.recheck.caseId === c.id){
+    const firstIdx = state.recheck.firstPick;
+    const otherIndices = c.options.map((_, i) => i).filter(i => i !== firstIdx);
+    const rcOptionsHtml = otherIndices.map(i => {
+      const isSel = state.recheck.secondPick === i;
+      return `
+      <div class="option ${isSel ? 'rc-selected' : ''}" onclick="selectRecheckOption(${i})">
+        <input type="radio" name="rcopt" ${isSel ? "checked" : ""} />
+        <label>${c.options[i].text}</label>
+      </div>`;
+    }).join("");
+
+    return `
+    <div class="wrap">
+      <header class="top">${chipsRow()}<span class="score-pill">${runningScore()} / ${MAX_SCORE}</span></header>
+      <div class="progress-track">${segs}</div>
+      <div class="card">
+        <div class="swatch-tag"><span class="dot"></span>CASE ${String(c.id).padStart(2,"0")} · ${c.theme.toUpperCase()}</div>
+        <h2>${c.title}</h2>
+        <div class="recheck-banner">
+          <div class="rc-head">Good instinct — that's a strong move. Before it's final:</div>
+          Take one more look at the other three options. Do you think another one of them could also be a legitimate best move for this situation? Pick it below if so — or confirm you're sticking with your first answer.
+        </div>
+        <div class="option rc-original">
+          <input type="radio" checked disabled />
+          <label><b>Your answer:</b> ${c.options[firstIdx].text}</label>
+        </div>
+        <div class="question" style="margin-top:16px;">Is there another strong option here?</div>
+        <div id="optionsList">${rcOptionsHtml}</div>
+        <div class="btn-row">
+          <button class="btn secondary" id="rcStickBtn">No — I'll stick with my first answer</button>
+          <button class="btn" id="rcConfirmBtn" ${state.recheck.secondPick === null ? "disabled" : ""}>Confirm this second pick</button>
+        </div>
+      </div>
+      <footer class="foot">${state.name} · ${state.location}</footer>
+    </div>`;
+  }
+
+  const optionsHtml = c.options.map((o, i) => {
+    let cls = "option";
+    const isPicked = answered && answered.choiceIndex === i;
+    if (answered){
+      cls += " locked";
+      if (isPicked) cls += " picked";
+      if (o.points === 10) cls += " correct-best";
+    }
+    return `
+      <div class="${cls}" data-idx="${i}" ${answered ? "" : "onclick=\"selectOption(" + i + ")\""}>
+        <input type="radio" name="opt" ${isPicked ? "checked" : ""} ${answered ? "disabled" : ""} />
+        <label>${o.text}</label>
+      </div>`;
+  }).join("");
+
+  let feedbackHtml = "";
+  if (answered){
+    const opt = c.options[answered.choiceIndex];
+    let dualNote = "";
+    if (c.dualBest){
+      const otherIdx = c.dualBest.find(i => i !== answered.choiceIndex);
+      if (c.dualBest.includes(answered.choiceIndex)){
+        if (answered.sawSecondBest === "matched"){
+          dualNote = `<div class="recheck-banner"><div class="rc-head">Sharp eyes — you caught it.</div>This case had two valid best moves, and you spotted both: your first pick, and <b>"${c.options[otherIdx].text}"</b> — different strategies, both genuinely strong here.</div>`;
+        } else {
+          dualNote = `<div class="recheck-banner"><div class="rc-head">Worth noting:</div>There was a second valid best move here too — <b>"${c.options[otherIdx].text}"</b> would have worked just as well, for different reasons.</div>`;
+        }
+      } else {
+        dualNote = `<div class="recheck-banner"><div class="rc-head">Worth noting:</div>This case actually had two valid best moves. See if you can spot them both when we debrief as a group.</div>`;
+      }
+    }
+    feedbackHtml = `
+      <div class="feedback score-${opt.points}">
+        <div class="feedback-head"><span>${opt.points === 10 ? "Best move" : opt.points >= 6 ? "Reasonable, but not the strongest" : opt.points >= 3 ? "Risky choice" : "This one works against you"}</span><span>+${opt.points} pts</span></div>
+        <div>${opt.rationale}</div>
+      </div>
+      ${dualNote}
+      <div class="classify-box">
+        <b>Classification:</b> This case is
+        <span class="${c.classification === 'manageable' ? 'tag-manageable' : 'tag-nonworkable'}">${c.classification === 'manageable' ? 'MANAGEABLE' : 'NON-WORKABLE'}</span>.
+        ${c.classifyNote}
+      </div>
+      ${c.debrief ? `<div class="classify-box" style="margin-top:10px;"><b>Bring to the group debrief:</b> ${c.debrief}</div>` : ""}
+      <div class="btn-row">
+        <button class="btn" id="nextBtn">${state.caseIndex === CASES.length - 1 ? "See my results" : "Next case"}</button>
+      </div>`;
+  } else {
+    feedbackHtml = `
+      <div class="btn-row">
+        <button class="btn" id="submitBtn" disabled>Lock in my answer</button>
+      </div>`;
+  }
+
+  return `
+  <div class="wrap">
+    <header class="top">${chipsRow()}<span class="score-pill">${runningScore()} / ${MAX_SCORE}</span></header>
+    <div class="progress-track">${segs}</div>
+    <div class="card">
+      <div class="swatch-tag" ${c.id > 6 ? 'style="background:var(--red-light);color:var(--red);"' : ''}><span class="dot" ${c.id > 6 ? 'style="background:var(--red);"' : ''}></span>CASE ${String(c.id).padStart(2,"0")} · ${c.theme.toUpperCase()}</div>
+      <h2>${c.title}</h2>
+      <div class="scenario-box">${c.scenario}</div>
+      <div class="question">${c.question}</div>
+      <div id="optionsList">${optionsHtml}</div>
+      ${feedbackHtml}
+    </div>
+    <footer class="foot">${state.name} · ${state.location}</footer>
+  </div>`;
+}
+
+function renderResults(){
+  const total = runningScore();
+  const pct = total / MAX_SCORE;
+  let band, bandColor, bandSub;
+  if (pct >= 0.83){ band = "Culture Builder"; bandColor = "linear-gradient(135deg,#0F8040,#086CB7)"; bandSub = "Your instincts consistently land on the structural fix, not the quick patch."; }
+  else if (pct >= 0.58){ band = "Solid Instincts"; bandColor = "linear-gradient(135deg,#086CB7,#2C225F)"; bandSub = "Good judgment overall — a few habits away from consistently catching the root cause."; }
+  else { band = "Needs a Structured Reset"; bandColor = "linear-gradient(135deg,#E21D26,#2C225F)"; bandSub = "Worth revisiting the framework — several calls leaned on quick fixes over root-cause action."; }
+
+  const rows = CASES.map(c => {
+    const a = state.answers.find(x => x.caseId === c.id);
+    const pts = a ? a.points : 0;
+    return `<div class="summary-row"><span>${c.id}. ${c.title}</span><span class="pts p${pts}">+${pts}</span></div>`;
+  }).join("");
+
+  return `
+  <div class="wrap">
+    <header class="top">${chipsRow()}</header>
+    <div class="band-banner" style="background:${bandColor}">
+      <div class="label">${state.name || "Your"} RESULT</div>
+      <div class="big">${total} / ${MAX_SCORE}</div>
+      <div class="label">${band}</div>
+      <div class="sub">${bandSub}</div>
+    </div>
+    <div class="card">
+      <h2>Your case-by-case breakdown</h2>
+      ${rows}
+      <div class="submit-status" id="submitStatus">${CONFIG.APPS_SCRIPT_URL ? (state.submittedToSheet ? "\u2713 Submitted to the group leaderboard." : "Submitting to the group leaderboard...") : "Leaderboard not configured for this session — showing your local result only."}</div>
+    </div>
+    <footer class="foot">Sales Training &amp; Capability Development — West Zone</footer>
+  </div>`;
+}
+
+/* ============================================================
+   LEADERBOARD VIEW
+   ============================================================ */
+function renderLeaderboard(){
+  return `
+  <div class="lb-wrap">
+    <div class="lb-header">
+      <div>${chipsRow()}</div>
+      <div class="lb-refresh" id="lbRefresh">Refreshing every 20s</div>
+    </div>
+    <h1 style="margin-bottom:4px;">Live Leaderboard</h1>
+    <p class="lede">West Zone Manager Workshop — Case Study Simulator</p>
+    <div id="lbTableHolder"><div class="lb-empty">Loading results\u2026</div></div>
+  </div>`;
+}
+
+function initLeaderboard(){
+  if (!CONFIG.LEADERBOARD_CSV_URL){
+    document.getElementById("lbTableHolder").innerHTML =
+      '<div class="lb-empty">Leaderboard isn\'t configured yet.<br>Set CONFIG.LEADERBOARD_CSV_URL to your published Google Sheet CSV link.</div>';
+    return;
+  }
+  fetchLeaderboard();
+  setInterval(fetchLeaderboard, 20000);
+}
+
+function fetchLeaderboard(){
+  fetch(CONFIG.LEADERBOARD_CSV_URL + "&t=" + Date.now())
+    .then(r => r.text())
+    .then(csv => {
+      const rows = csv.trim().split("\n").map(r => r.split(","));
+      const data = rows.slice(1)
+        .map(r => ({ name: r[0], location: r[1], score: parseInt(r[2], 10) || 0 }))
+        .sort((a, b) => b.score - a.score);
+      renderLbTable(data);
+    })
+    .catch(() => {
+      document.getElementById("lbTableHolder").innerHTML = '<div class="lb-empty">Couldn\'t load results right now. Retrying automatically.</div>';
+    });
+}
+
+function renderLbTable(data){
+  if (!data.length){
+    document.getElementById("lbTableHolder").innerHTML = '<div class="lb-empty">No submissions yet.</div>';
+    return;
+  }
+  const rowsHtml = data.map((d, i) => `
+    <tr>
+      <td class="rank ${i === 0 ? 'gold' : ''}">${i + 1}</td>
+      <td>${escapeHtml(d.name)}</td>
+      <td>${escapeHtml(d.location)}</td>
+      <td>${d.score} / ${MAX_SCORE}</td>
+    </tr>`).join("");
+  document.getElementById("lbTableHolder").innerHTML = `
+    <table class="lb">
+      <thead><tr><th>#</th><th>Manager</th><th>Location</th><th>Score</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>`;
+}
+
+function escapeHtml(s){
+  return (s || "").replace(/[&<>"']/g, m => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[m]));
+}
+
+/* ============================================================
+   HANDLERS
+   ============================================================ */
+function runningScore(){
+  return state.answers.reduce((sum, a) => sum + a.points, 0);
+}
+
+let pendingChoice = null;
+
+function selectOption(idx){
+  pendingChoice = idx;
+  document.querySelectorAll(".option").forEach((el, i) => {
+    el.classList.toggle("picked", i === idx);
+  });
+  const btn = document.getElementById("submitBtn");
+  if (btn) btn.disabled = false;
+}
+window.selectOption = selectOption;
+
+function selectRecheckOption(idx){
+  if (!state.recheck) return;
+  state.recheck.secondPick = idx;
+  render();
+}
+window.selectRecheckOption = selectRecheckOption;
+
+function finalizeAnswer(c, choiceIndex, sawSecondBest){
+  const opt = c.options[choiceIndex];
+  state.answers.push({ caseId: c.id, points: opt.points, choiceIndex: choiceIndex, sawSecondBest: sawSecondBest || null });
+  state.recheck = null;
+  pendingChoice = null;
+  render();
+}
+
+function attachHandlers(){
+  const startBtn = document.getElementById("startBtn");
+  if (startBtn){
+    startBtn.onclick = () => {
+      const name = document.getElementById("nameInput").value.trim();
+      const loc = document.getElementById("locInput").value.trim();
+      if (!name){ document.getElementById("nameInput").focus(); return; }
+      state.name = name;
+      state.location = loc || "West Zone";
+      state.screen = "case";
+      state.caseIndex = 0;
+      pendingChoice = null;
+      state.recheck = null;
+      render();
+    };
+  }
+
+  const submitBtn = document.getElementById("submitBtn");
+  if (submitBtn){
+    submitBtn.onclick = () => {
+      if (pendingChoice === null) return;
+      const c = CASES[state.caseIndex];
+      if (c.dualBest && c.dualBest.includes(pendingChoice)){
+        // route into the recheck flow instead of finalizing immediately
+        state.recheck = { caseId: c.id, firstPick: pendingChoice, secondPick: null };
+        pendingChoice = null;
+        render();
+        return;
+      }
+      finalizeAnswer(c, pendingChoice, null);
+    };
+  }
+
+  const rcConfirmBtn = document.getElementById("rcConfirmBtn");
+  if (rcConfirmBtn){
+    rcConfirmBtn.onclick = () => {
+      const c = CASES[state.caseIndex];
+      const rc = state.recheck;
+      if (rc.secondPick === null) return;
+      const isMatch = c.dualBest.includes(rc.secondPick);
+      finalizeAnswer(c, rc.firstPick, isMatch ? "matched" : "wrong");
+    };
+  }
+
+  const rcStickBtn = document.getElementById("rcStickBtn");
+  if (rcStickBtn){
+    rcStickBtn.onclick = () => {
+      const c = CASES[state.caseIndex];
+      const rc = state.recheck;
+      finalizeAnswer(c, rc.firstPick, "declined");
+    };
+  }
+
+  const nextBtn = document.getElementById("nextBtn");
+  if (nextBtn){
+    nextBtn.onclick = () => {
+      if (state.caseIndex < CASES.length - 1){
+        state.caseIndex += 1;
+        pendingChoice = null;
+        state.recheck = null;
+        render();
+      } else {
+        state.screen = "results";
+        render();
+        submitToSheet();
+      }
+    };
+  }
+}
+
+function submitToSheet(){
+  if (!CONFIG.APPS_SCRIPT_URL) return;
+  const total = runningScore();
+  const url = CONFIG.APPS_SCRIPT_URL
+    + "?name=" + encodeURIComponent(state.name)
+    + "&location=" + encodeURIComponent(state.location)
+    + "&score=" + encodeURIComponent(total)
+    + "&max=" + encodeURIComponent(MAX_SCORE)
+    + "&ts=" + Date.now();
+  // no-cors GET beacon, matching the Pitch Builder logging pattern
+  fetch(url, { mode: "no-cors" })
+    .then(() => {
+      state.submittedToSheet = true;
+      const el = document.getElementById("submitStatus");
+      if (el) el.textContent = "\u2713 Submitted to the group leaderboard.";
+    })
+    .catch(() => {
+      const el = document.getElementById("submitStatus");
+      if (el) el.textContent = "Couldn't reach the leaderboard — your result above is still valid.";
+    });
+}
+
+render();
+</script>
+</body>
+</html>
